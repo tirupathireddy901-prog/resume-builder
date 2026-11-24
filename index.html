@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Job-Fit Resume Builder</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<style>
+:root{--bg:#f3f5f4;--card:#fff;--ink:#17211f;--mute:#5d6b67;--line:#d9e0dd;--acc:#0f6b5c;--acc2:#e7f3f0;--bad:#b3261e}
+@media (prefers-color-scheme:dark){:root{--bg:#101615;--card:#18201e;--ink:#e8efed;--mute:#9bada8;--line:#2b3733;--acc:#4cc2ac;--acc2:#16302b;--bad:#ff8a80}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Segoe UI",Roboto,system-ui,sans-serif}
+.wrap{max-width:1100px;margin:0 auto;padding:16px}
+h1{font:700 26px/1.2 Georgia,serif;margin:8px 0 4px}
+.sub{color:var(--mute);margin:0 0 16px}
+.grid{display:grid;gap:16px}
+@media(min-width:900px){.grid{grid-template-columns:420px 1fr;align-items:start}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px}
+label{display:block;font-weight:600;font-size:14px;margin:12px 0 4px}
+label small{font-weight:400;color:var(--mute)}
+input,textarea,select{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit}
+input[type=color]{padding:2px;height:42px}input[type=range]{padding:0}
+textarea{resize:vertical;min-height:90px}
+:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
+button{font:inherit;cursor:pointer;border-radius:8px;border:1px solid var(--acc);padding:11px 14px;background:var(--acc);color:#fff;font-weight:600}
+button.ghost{background:transparent;color:var(--acc)}
+button:disabled{opacity:.55;cursor:wait}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.row>*{flex:1;min-width:120px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+#status{margin-top:10px;font-size:14px;color:var(--mute)}
+#status.err{color:var(--bad)}
+.tip{font-size:13px;color:var(--mute);margin-top:6px}
+.ats{background:var(--acc2);border-radius:8px;padding:12px;margin-bottom:12px;font-size:14px}
+.ats b.score{font-size:22px;color:var(--acc)}
+.chips span{display:inline-block;border:1px solid var(--line);background:var(--card);border-radius:99px;padding:1px 9px;margin:2px 2px 0 0;font-size:12.5px}
+.chips .miss{border-color:var(--bad);color:var(--bad)}
+.sug label{display:flex;gap:8px;align-items:center;font-weight:400;margin:4px 0}
+.sug input{width:auto}
+.verify{border-left:3px solid var(--bad);padding-left:10px;font-size:14px;margin:8px 0}
+.paper{background:#fff;color:#111;border:1px solid var(--line);padding:28px 30px;font-size:13.5px;line-height:1.45;overflow-wrap:anywhere;--pa:#0f6b5c}
+.paper h2{font-size:1em;letter-spacing:.04em;margin:15px 0 6px;padding-bottom:3px;border-bottom:1.5px solid #111}
+.paper h3{font-size:1.04em;margin:0}
+.paper ul{margin:3px 0 8px;padding-left:18px}
+.paper .nm{font-size:1.95em;font-weight:700;margin:0;line-height:1.15}
+.paper .tl{font-size:1.1em;margin:2px 0 4px}
+.paper .ct{font-size:.93em;color:#333}
+.paper .sp{display:flex;justify-content:space-between;gap:10px}
+.paper .sp span:last-child{white-space:nowrap;color:#444}
+.paper.classic{font-family:Georgia,"Times New Roman",serif}
+.paper.modern{font-family:"Segoe UI",Roboto,Arial,sans-serif}
+.paper.modern h2{border-bottom:0;color:var(--pa);border-left:4px solid var(--pa);padding-left:8px}
+.paper.modern .nm{color:var(--pa)}
+.empty{color:var(--mute);text-align:center;padding:40px 10px}
+#cl{min-height:240px;margin-top:8px}
+@media print{body{background:#fff}.wrap>*:not(.grid),.grid>.card:first-child,.noprint{display:none!important}.wrap{padding:0;max-width:none}.grid{display:block}.paper{border:0;padding:0}.card{border:0;padding:0;background:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Job-fit resume builder</h1>
+  <p class="sub">Paste a job description and your details. Gemini writes a polished resume tailored to that role.</p>
+  <div class="grid">
+    <div class="card">
+      <label for="key">Gemini API key <small>(stays in this browser only)</small></label>
+      <input id="key" type="password" autocomplete="off" placeholder="AIza...">
+      <label for="jd">Job description</label>
+      <textarea id="jd" rows="7" placeholder="Paste the full job posting"></textarea>
+      <label for="me">Your details <small>(any format)</small></label>
+      <textarea id="me" rows="10" placeholder="Name, phone, email, city, LinkedIn/GitHub&#10;Education: degree, college, years, CGPA&#10;Skills&#10;Projects (what you built, tools used)&#10;Internships / work&#10;Certifications, achievements"></textarea>
+      <div class="two">
+        <div><label for="lvl">Experience level</label><select id="lvl"><option value="fresher">Fresher / student</option><option value="exp">Experienced</option></select></div>
+        <div><label for="mode">Smart assist</label><select id="mode"><option value="smart">On: suggest what's missing</option><option value="strict">Off: only my facts</option></select></div>
+        <div><label for="tpl">Template</label><select id="tpl"><option value="classic">Classic (ATS-safe)</option><option value="modern">Modern</option></select></div>
+        <div><label for="col">Accent color</label><input id="col" type="color" value="#0f6b5c"></div>
+      </div>
+      <label for="model">Model</label>
+      <select id="model"><option>gemini-2.5-flash</option><option>gemini-2.5-flash-lite</option><option>gemini-2.0-flash</option><option>gemini-2.5-pro</option></select>
+      <div class="row"><button id="go">Build my resume</button></div>
+      <div id="status" role="status"></div>
+      <p class="tip">Smart assist never invents employers, degrees, dates, certificates or numbers. It suggests skills and wording for you to approve.</p>
+    </div>
+    <div>
+      <div id="out" class="card"><div class="empty">Your tailored resume will appear here.</div></div>
+    </div>
+  </div>
+</div>
+<script>
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const store={get(k){try{return localStorage.getItem(k)||""}catch(e){return ""}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+$("key").value=store.get("gk");$("model").value=store.get("gm")||"gemini-2.5-flash";
+$("jd").value=store.get("jd");$("me").value=store.get("me");
+["jd","me"].forEach(i=>$(i).addEventListener("input",()=>store.set(i,$(i).value)));
+let R=null,FS=13.5,PICK={};
+
+function buildSystem(mode,level){
+  const smart=mode==="smart";
+  return `You are a senior resume writer and ATS specialist. Create a professional, one-page resume tailored to the job description from the candidate's details.
+HARD RULES:
+- Never invent employers, job titles, degrees, institutions, dates, scores, certificates, or numbers/metrics the candidate did not give.
+- Reword, reorder, and sharpen what they gave. Mirror the job's keywords wherever the candidate's experience truthfully supports them.
+- Bullets: strong action verb first, max 20 words, specific tool/technology, outcome if known. 2-4 bullets per project or role.
+- Summary: 2-3 sentences, written for THIS role. ${level==="fresher"?"The candidate is a fresher: lead with education, projects, and skills; treat internships as experience.":"The candidate is experienced: lead with impact and relevant experience."}
+- Put the most job-relevant skills and projects first. Group skills by category (e.g. Languages, Tools, Frameworks, Soft skills).
+- Consistent tense, no first-person pronouns, no filler like "hard-working team player".
+${smart?`SMART ASSIST: The candidate may have left gaps. Do NOT put assumptions in the main resume. Instead fill "suggested.skills" with up to 10 skills/tools a person with their stated projects and background would plausibly know and the job asks for (each {category,item}), and put every item the candidate should confirm or add in "verify" (e.g. "Add your CGPA", "Add LinkedIn URL", "Quantify the result of project X if you can").`:`STRICT MODE: use only the candidate's facts. Leave "suggested.skills" empty; still fill "verify" with missing basics.`}
+- ats.score = honest 0-100 estimate of keyword fit; ats.matched/missing = job keywords; ats.tips = 3-4 concrete suggestions.
+- Omit empty sections (empty arrays). Output JSON only:
+{"name":"","title":"","contact":{"email":"","phone":"","location":"","links":[{"label":"","url":""}]},"summary":"","skills":[{"category":"","items":[""]}],"experience":[{"role":"","company":"","period":"","bullets":[""]}],"projects":[{"name":"","tech":"","bullets":[""]}],"education":[{"degree":"","institution":"","period":"","score":""}],"certifications":[""],"achievements":[""],"suggested":{"skills":[{"category":"","item":""}]},"verify":[""],"ats":{"score":0,"matched":[""],"missing":[""],"tips":[""]}}`;
+}
+
+async function callG(model,system,user,json){
+  const body={systemInstruction:{parts:[{text:system}]},contents:[{role:"user",parts:[{text:user}]}],generationConfig:Object.assign({temperature:json?0.4:0.6},json?{responseMimeType:"application/json"}:{})};
+  const res=await fetch("https://generativelanguage.googleapis.com/v1beta/models/"+encodeURIComponent(model)+":generateContent",{method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":$("key").value.trim()},body:JSON.stringify(body)});
+  const data=await res.json();
+  if(!res.ok){const e=new Error(data.error&&data.error.message||("HTTP "+res.status));e.code=res.status;throw e}
+  const txt=((data.candidates&&data.candidates[0]&&data.candidates[0].content.parts)||[]).map(p=>p.text||"").join("");
+  return json?JSON.parse(txt.replace(/```json|```/g,"").trim()):txt.trim();
+}
+async function withFallback(fn){
+  try{return await fn($("model").value)}
+  catch(e){if(e.code===503||e.code===429||e instanceof SyntaxError){$("status").textContent="Retrying with a lighter model...";return await fn("gemini-2.5-flash-lite")}throw e}
+}
+
+const li=a=>(a||[]).filter(Boolean).map(x=>"<li>"+esc(x)+"</li>").join("");
+function sections(r){
+  const S={};
+  S.summary=r.summary?`<h2>SUMMARY</h2><p>${esc(r.summary)}</p>`:"";
+  const extra=(r.suggested&&r.suggested.skills||[]).filter((s,i)=>PICK[i]);
+  const sk=(r.skills||[]).map(s=>({category:s.category,items:(s.items||[]).slice()}));
+  extra.forEach(x=>{let g=sk.find(s=>(s.category||"").toLowerCase()===(x.category||"").toLowerCase());if(!g){g={category:x.category||"Other",items:[]};sk.push(g)}if(!g.items.includes(x.item))g.items.push(x.item)});
+  S.skills=sk.length?`<h2>SKILLS</h2>`+sk.map(s=>`<div><b>${esc(s.category)}:</b> ${(s.items||[]).map(esc).join(", ")}</div>`).join(""):"";
+  S.projects=(r.projects||[]).length?`<h2>PROJECTS</h2>`+r.projects.map(p=>`<h3>${esc(p.name)}${p.tech?` <span style="font-weight:400">| ${esc(p.tech)}</span>`:""}</h3><ul>${li(p.bullets)}</ul>`).join(""):"";
+  S.experience=(r.experience||[]).length?`<h2>EXPERIENCE</h2>`+r.experience.map(e=>`<div class="sp"><h3>${esc(e.role)}, ${esc(e.company)}</h3><span>${esc(e.period)}</span></div><ul>${li(e.bullets)}</ul>`).join(""):"";
+  S.education=(r.education||[]).length?`<h2>EDUCATION</h2>`+r.education.map(e=>`<div class="sp"><div><b>${esc(e.degree)}</b>, ${esc(e.institution)}${e.score?" ("+esc(e.score)+")":""}</div><span>${esc(e.period)}</span></div>`).join(""):"";
+  S.certs=(r.certifications||[]).filter(Boolean).length?`<h2>CERTIFICATIONS</h2><ul>${li(r.certifications)}</ul>`:"";
+  S.ach=(r.achievements||[]).filter(Boolean).length?`<h2>ACHIEVEMENTS</h2><ul>${li(r.achievements)}</ul>`:"";
+  return S;
+}
+function paperHTML(){
+  const r=R,c=r.contact||{},S=sections(r);
+  const bits=[c.email,c.phone,c.location].concat((c.links||[]).map(l=>l.url||l.label)).filter(Boolean).map(esc).join(" | ");
+  const order=$("lvl").value==="fresher"?["summary","education","skills","projects","experience","certs","ach"]:["summary","skills","experience","projects","education","certs","ach"];
+  return `<p class="nm">${esc(r.name)}</p><p class="tl">${esc(r.title)}</p><div class="ct">${bits}</div>`+order.map(k=>S[k]).join("");
+}
+function paintPaper(){const p=$("paper");p.className="paper "+$("tpl").value;p.style.setProperty("--pa",$("col").value);p.style.fontSize=FS+"px";p.innerHTML=paperHTML()}
+
+function render(){
+  const a=R.ats||{},sug=(R.suggested&&R.suggested.skills)||[];
+  $("out").innerHTML=`<div class="ats noprint"><b class="score">${esc(a.score)}%</b> estimated keyword match
+    <div class="chips">${(a.matched||[]).map(k=>`<span>${esc(k)}</span>`).join("")}${(a.missing||[]).map(k=>`<span class="miss">${esc(k)}</span>`).join("")}</div>
+    <div class="tip">Red = in the job post but not in your resume.</div>
+    ${(a.tips||[]).length?`<ul style="margin:6px 0 0;padding-left:18px">${li(a.tips)}</ul>`:""}</div>
+  ${sug.length?`<div class="ats noprint sug"><b>Suggested skills</b> <span class="tip">Tick only the ones you really have.</span>${sug.map((s,i)=>`<label><input type="checkbox" data-i="${i}"> ${esc(s.item)} <small>(${esc(s.category)})</small></label>`).join("")}</div>`:""}
+  ${(R.verify||[]).filter(Boolean).length?`<div class="verify noprint"><b>Check before sending</b><ul style="margin:4px 0 0;padding-left:18px">${li(R.verify)}</ul></div>`:""}
+  <div class="row noprint"><button id="dlpdf">Download PDF</button><button class="ghost" id="dldoc">Download Word</button><button class="ghost" id="cp">Copy text</button></div>
+  <div class="row noprint"><label style="margin:0;flex:2;min-width:200px">Text size <input id="fs" type="range" min="11" max="15" step=".25" value="${FS}"></label><button class="ghost" id="cvl">Write cover letter</button></div>
+  <div class="tip noprint">Tap the resume to edit any line. Shrink the text size to fit one page.</div>
+  <div class="paper" id="paper" contenteditable="true" spellcheck="false" style="margin-top:8px"></div>
+  <div id="clbox" class="noprint"></div>`;
+  paintPaper();wire();
+}
+function wire(){
+  document.querySelectorAll(".sug input").forEach(b=>b.onchange=()=>{PICK[b.dataset.i]=b.checked;paintPaper()});
+  $("fs").oninput=e=>{FS=+e.target.value;$("paper").style.fontSize=FS+"px"};
+  const fname=((R.name||"resume").trim().replace(/[^\w]+/g,"_")||"resume")+"_Resume";
+  $("cp").onclick=async()=>{try{await navigator.clipboard.writeText($("paper").innerText);$("cp").textContent="Copied"}catch(e){$("cp").textContent="Copy failed"}};
+  $("dlpdf").onclick=async()=>{
+    if(!window.html2pdf){window.print();return}
+    const b=$("dlpdf");b.disabled=true;b.textContent="Preparing...";
+    const w=document.createElement("div");w.style.cssText="position:fixed;left:-10000px;top:0;width:794px;background:#fff";
+    const c=$("paper").cloneNode(true);c.removeAttribute("contenteditable");c.style.border="0";c.style.padding="0";c.style.width="794px";
+    w.appendChild(c);document.body.appendChild(w);
+    try{await html2pdf().set({margin:[12,12,12,12],filename:fname+".pdf",image:{type:"jpeg",quality:.98},html2canvas:{scale:2,useCORS:true},jsPDF:{unit:"mm",format:"a4"},pagebreak:{mode:["css","legacy"],avoid:["li","h3"]}}).from(c).save()}
+    catch(e){window.print()}
+    finally{w.remove();b.disabled=false;b.textContent="Download PDF"}
+  };
+  $("dldoc").onclick=()=>{
+    const css="body{font-family:Calibri,Arial,sans-serif;font-size:11pt}h2{font-size:12pt;border-bottom:1px solid #000;margin:12pt 0 4pt}h3{font-size:11pt;margin:0}.nm{font-size:20pt;font-weight:bold;margin:0}ul{margin:2pt 0 6pt}";
+    const html='<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><style>'+css+'</style></head><body>'+$("paper").innerHTML+'</body></html>';
+    dl(new Blob(["\ufeff"+html],{type:"application/msword"}),fname+".doc");
+  };
+  $("cvl").onclick=async()=>{
+    const b=$("cvl");b.disabled=true;b.textContent="Writing...";
+    try{
+      const t=await withFallback(m=>callG(m,"You write concise, genuine cover letters. Use ONLY facts in the candidate details; never invent employers, numbers or skills. 3 short paragraphs, under 250 words, no clichés, plain text, start with 'Dear Hiring Manager,' and end with the candidate's name.","JOB DESCRIPTION:\n"+$("jd").value+"\n\nCANDIDATE DETAILS:\n"+$("me").value,false));
+      $("clbox").innerHTML=`<textarea id="cl"></textarea><div class="row"><button class="ghost" id="clcp">Copy letter</button><button class="ghost" id="cldl">Download .txt</button></div>`;
+      $("cl").value=t;$("clcp").onclick=()=>navigator.clipboard.writeText($("cl").value);
+      $("cldl").onclick=()=>dl(new Blob([$("cl").value],{type:"text/plain"}),fname.replace("_Resume","_Cover_Letter")+".txt");
+    }catch(e){$("clbox").innerHTML=`<div class="verify">Could not write the letter: ${esc(e.message)}</div>`}
+    b.disabled=false;b.textContent="Write cover letter";
+  };
+}
+function dl(blob,name){const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove()}
+$("tpl").onchange=$("col").oninput=()=>{if(R)paintPaper()};
+
+$("go").onclick=async()=>{
+  const key=$("key").value.trim(),jd=$("jd").value.trim(),me=$("me").value.trim();
+  const st=$("status");st.className="";
+  if(!key||!jd||!me){st.className="err";st.textContent="Add your API key, the job description, and your details.";return}
+  store.set("gk",key);store.set("gm",$("model").value);
+  $("go").disabled=true;st.textContent="Tailoring your resume to the job...";
+  try{
+    const sys=buildSystem($("mode").value,$("lvl").value);
+    R=await withFallback(m=>callG(m,sys,"JOB DESCRIPTION:\n"+jd+"\n\nCANDIDATE DETAILS:\n"+me,true));
+    PICK={};render();st.textContent="Done. Review the checklist, edit anything, then download.";
+  }catch(e){
+    st.className="err";
+    st.textContent=(e.code===400||e.code===403)?"Gemini rejected the key or request: "+e.message:"Could not build the resume: "+e.message+". Check your key and connection, then try again.";
+  }finally{$("go").disabled=false}
+};
+</script>
+</body>
+</html>
